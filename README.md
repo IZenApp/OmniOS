@@ -1,4 +1,4 @@
-# README Clean_Disk_System
+# Clean_Disk_System
 
 ## Описание
 
