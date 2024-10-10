@@ -14,98 +14,129 @@ void LockUnlockDisk(char driveLetter, bool lock) {
                                NULL, OPEN_EXISTING, 0, NULL);
 
     if (hDrive == INVALID_HANDLE_VALUE) {
-        std::cerr << "Error: Unable to open drive " << driveLetter << std::endl;
+        MessageBox(NULL, ("Error: Unable to open drive " + std::string(1, driveLetter)).c_str(), "Error", MB_OK);
         return;
     }
 
     DWORD bytesReturned;
     if (lock) {
         if (DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
-            std::cout << "Drive " << driveLetter << " locked successfully." << std::endl;
+            MessageBox(NULL, ("Drive " + std::string(1, driveLetter) + " locked successfully.").c_str(), "Success", MB_OK);
         } else {
-            std::cerr << "Error: Unable to lock drive " << driveLetter << std::endl;
+            MessageBox(NULL, ("Error: Unable to lock drive " + std::string(1, driveLetter)).c_str(), "Error", MB_OK);
         }
     } else {
         if (DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
-            std::cout << "Drive " << driveLetter << " unlocked successfully." << std::endl;
+            MessageBox(NULL, ("Drive " + std::string(1, driveLetter) + " unlocked successfully.").c_str(), "Success", MB_OK);
         } else {
-            std::cerr << "Error: Unable to unlock drive " << driveLetter << std::endl;
+            MessageBox(NULL, ("Error: Unable to unlock drive " + std::string(1, driveLetter)).c_str(), "Error", MB_OK);
         }
     }
 
     CloseHandle(hDrive);
 }
 
-void DisplayDisks() {
+void DisplayDisks(std::vector<char>& disks) {
     DWORD drives = GetLogicalDrives();
-    std::cout << "Available drives:" << std::endl;
-
     for (int i = 0; i < 26; ++i) {
         if (drives & (1 << i)) {
-            std::cout << char('A' + i) << ":\\ ";
+            disks.push_back('A' + i);
         }
     }
-    std::cout << std::endl;
+}
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    static std::vector<char> disks;
+    static HWND hComboBox;
+    
+    switch (uMsg) {
+    case WM_CREATE:
+        DisplayDisks(disks);
+        hComboBox = CreateWindow("COMBOBOX", NULL,
+            WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL,
+            20, 20, 150, 100, hwnd, NULL, NULL, NULL);
+
+        for (char disk : disks) {
+            SendMessage(hComboBox, CB_ADDSTRING, 0, (LPARAM)(std::string(1, disk) + ":").c_str());
+        }
+
+        CreateWindow("BUTTON", "Lock Disk",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            20, 60, 100, 30, hwnd, (HMENU)1, NULL, NULL);
+
+        CreateWindow("BUTTON", "Unlock Disk",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            130, 60, 100, 30, hwnd, (HMENU)2, NULL, NULL);
+
+        CreateWindow("BUTTON", "Lock All Disks",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            20, 100, 100, 30, hwnd, (HMENU)3, NULL, NULL);
+
+        CreateWindow("BUTTON", "Unlock All Disks",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            130, 100, 100, 30, hwnd, (HMENU)4, NULL, NULL);
+
+        break;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == 1) { // Lock Disk
+            char disk;
+            SendMessage(hComboBox, CB_GETLBTEXT, SendMessage(hComboBox, CB_GETCURSEL, 0, 0), (LPARAM)&disk);
+            LockUnlockDisk(disk, true);
+        }
+        else if (LOWORD(wParam) == 2) { // Unlock Disk
+            char disk;
+            SendMessage(hComboBox, CB_GETLBTEXT, SendMessage(hComboBox, CB_GETCURSEL, 0, 0), (LPARAM)&disk);
+            LockUnlockDisk(disk, false);
+        }
+        else if (LOWORD(wParam) == 3) { // Lock All Disks
+            DWORD drives = GetLogicalDrives();
+            for (int i = 0; i < 26; ++i) {
+                if (drives & (1 << i)) {
+                    LockUnlockDisk('A' + i, true);
+                }
+            }
+        }
+        else if (LOWORD(wParam) == 4) { // Unlock All Disks
+            DWORD drives = GetLogicalDrives();
+            for (int i = 0; i < 26; ++i) {
+                if (drives & (1 << i)) {
+                    LockUnlockDisk('A' + i, false);
+                }
+            }
+        }
+        break;
+
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        break;
+
+    default:
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+    return 0;
 }
 
 int main() {
-    int choice;
-    char driveLetter;
-    std::vector<char> selectedDisks;
-    bool lockAll = false, unlockAll = false;
+    const char CLASS_NAME[] = "DiskLockerWindowClass";
 
-    std::cout << "1. Lock all disks\n2. Unlock all disks\n3. Select specific disks to lock\n4. Select specific disks to unlock" << std::endl;
-    std::cout << "Enter your choice: ";
-    std::cin >> choice;
+    WNDCLASS wc = {};
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = CLASS_NAME;
 
-    switch (choice) {
-    case 1:
-        lockAll = true;
-        break;
-    case 2:
-        unlockAll = true;
-        break;
-    case 3:
-        std::cout << "Select disks to lock (enter drive letters, finish with 0):" << std::endl;
-        DisplayDisks();
-        while (true) {
-            std::cin >> driveLetter;
-            if (driveLetter == '0') break;
-            selectedDisks.push_back(driveLetter);
-        }
-        break;
-    case 4:
-        std::cout << "Select disks to unlock (enter drive letters, finish with 0):" << std::endl;
-        DisplayDisks();
-        while (true) {
-            std::cin >> driveLetter;
-            if (driveLetter == '0') break;
-            selectedDisks.push_back(driveLetter);
-        }
-        break;
-    default:
-        std::cerr << "Invalid choice" << std::endl;
-        return 1;
-    }
+    RegisterClass(&wc);
 
-    if (lockAll) {
-        DWORD drives = GetLogicalDrives();
-        for (int i = 0; i < 26; ++i) {
-            if (drives & (1 << i)) {
-                LockUnlockDisk(char('A' + i), true);
-            }
-        }
-    } else if (unlockAll) {
-        DWORD drives = GetLogicalDrives();
-        for (int i = 0; i < 26; ++i) {
-            if (drives & (1 << i)) {
-                LockUnlockDisk(char('A' + i), false);
-            }
-        }
-    } else {
-        for (char disk : selectedDisks) {
-            LockUnlockDisk(disk, choice == 3);
-        }
+    HWND hwnd = CreateWindowEx(0, CLASS_NAME, "Disk Locker",
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+        300, 200, NULL, NULL, wc.hInstance, NULL);
+
+    ShowWindow(hwnd, SW_SHOWDEFAULT);
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, WM_QUIT)) { // Указаны минимальные и максимальные значения сообщений
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
     return 0;
