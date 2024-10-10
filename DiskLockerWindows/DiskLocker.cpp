@@ -14,7 +14,7 @@ void LockUnlockDisk(char driveLetter, bool lock) {
                                NULL, OPEN_EXISTING, 0, NULL);
 
     if (hDrive == INVALID_HANDLE_VALUE) {
-        std::cerr << "Ошибка: Не удалось открыть диск " << driveLetter << std::endl;
+        std::cerr << "Error: Failed to open disk " << driveLetter << std::endl;
         return;
     }
 
@@ -23,13 +23,13 @@ void LockUnlockDisk(char driveLetter, bool lock) {
         if (DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
             std::cout << "Drive " << driveLetter << " locked successfully." << std::endl;
         } else {
-            std::cerr << "Ошибка: Невозможно заблокировать диск " << driveLetter << std::endl;
+            std::cerr << "Error: Cannot lock disk " << driveLetter << std::endl;
         }
     } else {
         if (DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
             std::cout << "Drive " << driveLetter << " unlocked successfully." << std::endl;
         } else {
-            std::cerr << "Ошибка: Не удалось разблокировать диск " << driveLetter << std::endl;
+            std::cerr << "Error: Failed to unlock disk " << driveLetter << std::endl;
         }
     }
 
@@ -57,7 +57,7 @@ int main() {
         std::cout << std::endl;
 
         char choice;
-        std::cout << "Введите букву диска, которую вы хотите заблокировать/разблокировать (или 'q' для выхода): ";
+        std::cout << "Enter the drive letter you want to lock/unlock (or 'q' for exit): ";
         std::cin >> choice;
 
         if (choice == 'q' || choice == 'Q') {
