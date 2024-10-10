@@ -1,150 +1,111 @@
 #include <windows.h>
-#include <wincrypt.h>
 #include <iostream>
-#include <fstream>
+#include <vector>
+#include <string>
 
-#pragma comment(lib, "Advapi32.lib")
+void LockUnlockDisk(char driveLetter, bool lock) {
+    std::string drivePath = "\\\\.\\";
+    drivePath += driveLetter;
+    drivePath += ":";
 
-// Функция для шифрования файла на выбранном диске
-void EncryptFile(const std::string& filename) {
-    std::ifstream inputFile(filename, std::ios::binary);
-    if (!inputFile) {
-        std::cerr << "Ошибка: не удалось открыть файл для шифрования.\n";
+    HANDLE hDrive = CreateFile(drivePath.c_str(),
+                               GENERIC_READ | GENERIC_WRITE,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE,
+                               NULL, OPEN_EXISTING, 0, NULL);
+
+    if (hDrive == INVALID_HANDLE_VALUE) {
+        std::cerr << "Error: Unable to open drive " << driveLetter << std::endl;
         return;
     }
 
-    std::string fileData((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
-    inputFile.close();
-
-    HCRYPTPROV hProv;
-    HCRYPTKEY hKey;
-
-    // Инициализация криптопровайдера
-    if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
-        std::cerr << "Ошибка инициализации криптопровайдера.\n";
-        return;
-    }
-
-    // Генерация симметричного ключа для шифрования
-    if (!CryptGenKey(hProv, CALG_AES_256, CRYPT_EXPORTABLE, &hKey)) {
-        std::cerr << "Ошибка генерации ключа.\n";
-        CryptReleaseContext(hProv, 0);
-        return;
-    }
-
-    // Шифрование данных
-    DWORD dataLen = fileData.size();
-    if (!CryptEncrypt(hKey, 0, TRUE, 0, reinterpret_cast<BYTE*>(&fileData[0]), &dataLen, fileData.size())) {
-        std::cerr << "Ошибка шифрования данных.\n";
-        CryptDestroyKey(hKey);
-        CryptReleaseContext(hProv, 0);
-        return;
-    }
-
-    // Сохраняем зашифрованный файл
-    std::ofstream outputFile(filename + ".enc", std::ios::binary);
-    outputFile.write(fileData.c_str(), dataLen);
-    outputFile.close();
-
-    std::cout << "Файл успешно зашифрован: " << filename + ".enc" << std::endl;
-
-    CryptDestroyKey(hKey);
-    CryptReleaseContext(hProv, 0);
-}
-
-// Функция для расшифровки файла на выбранном диске
-void DecryptFile(const std::string& filename) {
-    std::ifstream inputFile(filename, std::ios::binary);
-    if (!inputFile) {
-        std::cerr << "Ошибка: не удалось открыть зашифрованный файл.\n";
-        return;
-    }
-
-    std::string encryptedData((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
-    inputFile.close();
-
-    HCRYPTPROV hProv;
-    HCRYPTKEY hKey;
-
-    if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
-        std::cerr << "Ошибка инициализации криптопровайдера.\n";
-        return;
-    }
-
-    // Восстановление ключа (упрощенный вариант, ключ должен быть сохранен)
-    if (!CryptGenKey(hProv, CALG_AES_256, CRYPT_EXPORTABLE, &hKey)) {
-        std::cerr << "Ошибка генерации ключа для расшифровки.\n";
-        CryptReleaseContext(hProv, 0);
-        return;
-    }
-
-    // Расшифровка данных
-    DWORD dataLen = encryptedData.size();
-    if (!CryptDecrypt(hKey, 0, TRUE, 0, reinterpret_cast<BYTE*>(&encryptedData[0]), &dataLen)) {
-        std::cerr << "Ошибка расшифровки данных.\n";
-        CryptDestroyKey(hKey);
-        CryptReleaseContext(hProv, 0);
-        return;
-    }
-
-    // Сохранение расшифрованного файла
-    std::ofstream outputFile(filename + ".dec", std::ios::binary);
-    outputFile.write(encryptedData.c_str(), dataLen);
-    outputFile.close();
-
-    std::cout << "Файл успешно расшифрован: " << filename + ".dec" << std::endl;
-
-    CryptDestroyKey(hKey);
-    CryptReleaseContext(hProv, 0);
-}
-
-// Функция для вывода списка дисков
-void ListDisks() {
-    char driveLetter[4] = "A:\\";
-    DWORD drives = GetLogicalDrives();
-
-    std::cout << "Доступные диски:\n";
-    for (int i = 0; i < 26; i++) {
-        if (drives & (1 << i)) {
-            driveLetter[0] = 'A' + i;
-            std::cout << driveLetter << std::endl;
+    DWORD bytesReturned;
+    if (lock) {
+        if (DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
+            std::cout << "Drive " << driveLetter << " locked successfully." << std::endl;
+        } else {
+            std::cerr << "Error: Unable to lock drive " << driveLetter << std::endl;
+        }
+    } else {
+        if (DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME, NULL, 0, NULL, 0, &bytesReturned, NULL)) {
+            std::cout << "Drive " << driveLetter << " unlocked successfully." << std::endl;
+        } else {
+            std::cerr << "Error: Unable to unlock drive " << driveLetter << std::endl;
         }
     }
+
+    CloseHandle(hDrive);
 }
 
-// Основная функция
+void DisplayDisks() {
+    DWORD drives = GetLogicalDrives();
+    std::cout << "Available drives:" << std::endl;
+
+    for (int i = 0; i < 26; ++i) {
+        if (drives & (1 << i)) {
+            std::cout << char('A' + i) << ":\\ ";
+        }
+    }
+    std::cout << std::endl;
+}
+
 int main() {
     int choice;
-    std::string disk, filename;
+    char driveLetter;
+    std::vector<char> selectedDisks;
+    bool lockAll = false, unlockAll = false;
 
-    std::cout << "Выберите действие:\n";
-    std::cout << "1. Зашифровать файл\n";
-    std::cout << "2. Расшифровать файл\n";
-    std::cout << "3. Показать доступные диски\n";
-    std::cout << "Введите ваш выбор: ";
+    std::cout << "1. Lock all disks\n2. Unlock all disks\n3. Select specific disks to lock\n4. Select specific disks to unlock" << std::endl;
+    std::cout << "Enter your choice: ";
     std::cin >> choice;
 
     switch (choice) {
-        case 1:
-            std::cout << "Введите диск для шифрования (например, D:\\): ";
-            std::cin >> disk;
-            std::cout << "Введите имя файла для шифрования (например, D:\\file.txt): ";
-            std::cin >> filename;
-            EncryptFile(filename);
-            break;
-        case 2:
-            std::cout << "Введите диск для расшифровки (например, D:\\): ";
-            std::cin >> disk;
-            std::cout << "Введите имя файла для расшифровки (например, D:\\file.enc): ";
-            std::cin >> filename;
-            DecryptFile(filename);
-            break;
-        case 3:
-            ListDisks();
-            break;
-        default:
-            std::cout << "Неправильный выбор!\n";
-            break;
+    case 1:
+        lockAll = true;
+        break;
+    case 2:
+        unlockAll = true;
+        break;
+    case 3:
+        std::cout << "Select disks to lock (enter drive letters, finish with 0):" << std::endl;
+        DisplayDisks();
+        while (true) {
+            std::cin >> driveLetter;
+            if (driveLetter == '0') break;
+            selectedDisks.push_back(driveLetter);
+        }
+        break;
+    case 4:
+        std::cout << "Select disks to unlock (enter drive letters, finish with 0):" << std::endl;
+        DisplayDisks();
+        while (true) {
+            std::cin >> driveLetter;
+            if (driveLetter == '0') break;
+            selectedDisks.push_back(driveLetter);
+        }
+        break;
+    default:
+        std::cerr << "Invalid choice" << std::endl;
+        return 1;
+    }
+
+    if (lockAll) {
+        DWORD drives = GetLogicalDrives();
+        for (int i = 0; i < 26; ++i) {
+            if (drives & (1 << i)) {
+                LockUnlockDisk(char('A' + i), true);
+            }
+        }
+    } else if (unlockAll) {
+        DWORD drives = GetLogicalDrives();
+        for (int i = 0; i < 26; ++i) {
+            if (drives & (1 << i)) {
+                LockUnlockDisk(char('A' + i), false);
+            }
+        }
+    } else {
+        for (char disk : selectedDisks) {
+            LockUnlockDisk(disk, choice == 3);
+        }
     }
 
     return 0;
