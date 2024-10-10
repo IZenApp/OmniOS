@@ -1,12 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 public class DiskLocker : Form
 {
     private ComboBox comboBox;
-    
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr CreateFile(string lpFileName, uint dwDesiredAccess, uint dwShareMode,
         IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
@@ -31,7 +31,7 @@ public class DiskLocker : Form
 
         comboBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new System.Drawing.Point(20, 20) };
         this.Controls.Add(comboBox);
-        
+
         Button lockButton = new Button { Text = "Lock Disk", Location = new System.Drawing.Point(20, 60) };
         lockButton.Click += (s, e) => LockUnlockDisk(comboBox.SelectedItem.ToString()[0], true);
         this.Controls.Add(lockButton);
@@ -51,46 +51,54 @@ public class DiskLocker : Form
         DisplayDisks();
     }
 
-    private void LockUnlockDisk(char driveLetter, bool lockDisk)
+    private async void LockUnlockDisk(char driveLetter, bool lockDisk)
     {
-        string drivePath = @"\\.\" + driveLetter + ":";
-        IntPtr hDrive = CreateFile(drivePath, 0x80000000 | 0x40000000, 0x00000001 | 0x00000002, IntPtr.Zero,
-            3, 0, IntPtr.Zero);
-
-        if (hDrive == (IntPtr)(-1))
+        await Task.Run(() =>
         {
-            MessageBox.Show($"Error: Unable to open drive {driveLetter}");
-            return;
-        }
+            string drivePath = @"\\.\" + driveLetter + ":";
+            IntPtr hDrive = CreateFile(drivePath, 0x80000000 | 0x40000000, 0x00000001 | 0x00000002, IntPtr.Zero,
+                3, 0, IntPtr.Zero);
 
-        uint bytesReturned;
-        bool result;
-        if (lockDisk)
-        {
-            result = DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME, IntPtr.Zero, 0, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
-        }
-        else
-        {
-            result = DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME, IntPtr.Zero, 0, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
-        }
+            if (hDrive == (IntPtr)(-1))
+            {
+                int errorCode = Marshal.GetLastWin32Error();
+                ShowErrorMessage($"Error: Unable to open drive {driveLetter}. Error Code: {errorCode}");
+                return;
+            }
 
-        MessageBox.Show(result
-            ? $"Drive {driveLetter} {(lockDisk ? "locked" : "unlocked")} successfully."
-            : $"Error: Unable to {(lockDisk ? "lock" : "unlock")} drive {driveLetter}");
+            uint bytesReturned;
+            bool result;
+            if (lockDisk)
+            {
+                result = DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME, IntPtr.Zero, 0, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
+            }
+            else
+            {
+                result = DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME, IntPtr.Zero, 0, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
+            }
 
-        CloseHandle(hDrive);
+            string message = result
+                ? $"Drive {driveLetter} {(lockDisk ? "locked" : "unlocked")} successfully."
+                : $"Error: Unable to {(lockDisk ? "lock" : "unlock")} drive {driveLetter}";
+
+            ShowErrorMessage(message);
+            CloseHandle(hDrive);
+        });
     }
 
-    private void LockUnlockAllDisks(bool lockDisk)
+    private async void LockUnlockAllDisks(bool lockDisk)
     {
-        uint drives = GetLogicalDrives();
-        for (int i = 0; i < 26; i++)
+        await Task.Run(() =>
         {
-            if ((drives & (1 << i)) != 0)
+            uint drives = GetLogicalDrives();
+            for (int i = 0; i < 26; i++)
             {
-                LockUnlockDisk((char)('A' + i), lockDisk);
+                if ((drives & (1 << i)) != 0)
+                {
+                    LockUnlockDisk((char)('A' + i), lockDisk);
+                }
             }
-        }
+        });
     }
 
     private void DisplayDisks()
@@ -107,6 +115,19 @@ public class DiskLocker : Form
         if (comboBox.Items.Count > 0)
         {
             comboBox.SelectedIndex = 0; // Select the first disk by default
+        }
+    }
+
+    private void ShowErrorMessage(string message)
+    {
+        // Invoke on UI thread
+        if (InvokeRequired)
+        {
+            Invoke(new Action(() => MessageBox.Show(message)));
+        }
+        else
+        {
+            MessageBox.Show(message);
         }
     }
 
