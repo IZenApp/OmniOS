@@ -33,6 +33,14 @@ void UnblockTaskManagerAndRegistry() {
     std::cout << "\nUnblock command executed for both. Please check permissions." << std::endl;
 }
 
+void OpenTaskManager() {
+    system("start taskmgr");
+}
+
+void OpenRegistryEditor() {
+    system("start regedit");
+}
+
 void ShowMenu() {
     std::cout << "\n|============================================|" << std::endl;
     std::cout << "|                Main Menu                   |" << std::endl;
@@ -43,6 +51,8 @@ void ShowMenu() {
     std::cout << "|4: Unblock Registry Editor                  |" << std::endl;
     std::cout << "|5: Block Task Manager and Registry Editor   |" << std::endl;
     std::cout << "|6: Unblock Task Manager and Registry Editor |" << std::endl;
+    std::cout << "|7: Check TaskManager                        |" << std::endl;
+    std::cout << "|8: Check RegistryEditor                     |" << std::endl;
     std::cout << "|0: Exit                                     |" << std::endl;
     std::cout << "|============================================|" << std::endl;
 }
@@ -71,6 +81,12 @@ int main() {
                 break;
             case 6:
                 UnblockTaskManagerAndRegistry();
+                break;
+            case 7:
+                OpenTaskManager();
+                break;
+            case 8:
+                OpenRegistryEditor();
                 break;
             case 0:
                 std::cout << "Exiting the program." << std::endl;
