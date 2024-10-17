@@ -3,34 +3,34 @@
 
 void BlockTaskManager() {
     system("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v DisableTaskMgr /t REG_DWORD /d 1 /f");
-    std::cout << "\n✅ Task Manager is now blocked." << std::endl;
+    std::cout << "\nTask Manager is now blocked." << std::endl;
 }
 
 void UnblockTaskManager() {
     system("PowerShell -Command \"Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"Remove-ItemProperty -Path \\\"HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\" -Name \\\"DisableTaskMgr\\\" -ErrorAction SilentlyContinue\"'\"");
-    std::cout << "\n✅ Unblock command for Task Manager executed. Please check permissions." << std::endl;
+    std::cout << "\nUnblock command for Task Manager executed. Please check permissions." << std::endl;
 }
 
 void BlockRegistryEditor() {
     system("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v DisableRegistryTools /t REG_DWORD /d 1 /f");
-    std::cout << "\n✅ Registry Editor is now blocked." << std::endl;
+    std::cout << "\nRegistry Editor is now blocked." << std::endl;
 }
 
 void UnblockRegistryEditor() {
     system("PowerShell -Command \"Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"Remove-ItemProperty -Path \\\"HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\" -Name \\\"DisableRegistryTools\\\" -ErrorAction SilentlyContinue\"'\"");
-    std::cout << "\n✅ Unblock command for Registry Editor executed. Please check permissions." << std::endl;
+    std::cout << "\nUnblock command for Registry Editor executed. Please check permissions." << std::endl;
 }
 
 void BlockTaskManagerAndRegistry() {
     BlockTaskManager();
     BlockRegistryEditor();
-    std::cout << "\n✅ Task Manager and Registry Editor are now blocked." << std::endl;
+    std::cout << "\nTask Manager and Registry Editor are now blocked." << std::endl;
 }
 
 void UnblockTaskManagerAndRegistry() {
     UnblockTaskManager();
     UnblockRegistryEditor();
-    std::cout << "\n✅ Unblock command executed for both. Please check permissions." << std::endl;
+    std::cout << "\nUnblock command executed for both. Please check permissions." << std::endl;
 }
 
 void ShowMenu() {
@@ -73,10 +73,10 @@ int main() {
                 UnblockTaskManagerAndRegistry();
                 break;
             case 0:
-                std::cout << "👋 Exiting the program." << std::endl;
+                std::cout << "Exiting the program." << std::endl;
                 break;
             default:
-                std::cout << "❌ Invalid choice. Please try again." << std::endl;
+                std::cout << "Invalid choice. Please try again." << std::endl;
                 break;
         }
     } while (choice != 0);
