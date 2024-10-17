@@ -8,9 +8,8 @@ void BlockTaskManagerAndRegistry() {
 }
 
 void UnblockTaskManagerAndRegistry() {
-    system("reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v DisableTaskMgr /f");
-    system("reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v DisableRegistryTools /f");
-    std::cout << "Task Manager and Registry Editor are unblocked." << std::endl;
+    system("PowerShell -Command \"Start-Process PowerShell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"Remove-ItemProperty -Path \\\"HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\" -Name \\\"DisableTaskMgr\\\" -ErrorAction SilentlyContinue; Remove-ItemProperty -Path \\\"HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\\\" -Name \\\"DisableRegistryTools\\\" -ErrorAction SilentlyContinue\"'\"");
+    std::cout << "Unblock command executed. Please check permissions." << std::endl;
 }
 
 void ShowMenu() {
