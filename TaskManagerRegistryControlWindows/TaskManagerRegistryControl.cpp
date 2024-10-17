@@ -51,7 +51,7 @@ int main() {
     int choice;
     do {
         ShowMenu();
-        std::cout << "Enter your choice: ";
+        std::cout << "\nEnter your choice: ";
         std::cin >> choice;
         switch (choice) {
             case 1:
