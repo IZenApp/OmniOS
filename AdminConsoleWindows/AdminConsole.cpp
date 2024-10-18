@@ -2,11 +2,14 @@
 #include <iostream>
 #include <string>
 #include <sddl.h>
+#include <vector>
+#include <algorithm>
 
 // Function declarations
 bool IsRunningAsAdmin();
 void RequestElevation();
 void RunCommand(const std::string& command, std::string& currentDir);
+std::string Autocomplete(const std::string& input);
 
 void RunCommand(const std::string& command, std::string& currentDir) {
     std::string modifiedCommand = command;
@@ -65,6 +68,17 @@ void RequestElevation() {
     ShellExecute(NULL, "runas", "cmd.exe", NULL, NULL, SW_SHOWNORMAL);
 }
 
+std::string Autocomplete(const std::string& input) {
+    // Simple autocomplete example
+    std::vector<std::string> commands = { "cd", "ls", "exit", "dir" };
+    for (const auto& command : commands) {
+        if (command.find(input) == 0) {
+            return command; // Return first matching command
+        }
+    }
+    return input; // Return input if no match found
+}
+
 int main() {
     if (!IsRunningAsAdmin()) {
         std::cout << "Please run the program as administrator." << std::endl;
@@ -83,6 +97,9 @@ int main() {
             break;
         }
 
+        // Autocomplete command
+        command = Autocomplete(command);
+        
         RunCommand(command, currentDir);
     }
 
