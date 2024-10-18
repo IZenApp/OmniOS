@@ -26,11 +26,11 @@
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/IZenApp/OmniOS.git
+   git clone https://github.com/ваш_пользователь/ваш_репозиторий.git
    ```
 2. Перейдите в директорию репозитория:
    ```bash
-   cd OmniOS
+   cd ваш_репозиторий
    ```
 
 ### Установка на Linux
