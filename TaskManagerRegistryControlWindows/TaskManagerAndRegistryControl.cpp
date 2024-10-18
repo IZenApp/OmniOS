@@ -56,7 +56,7 @@ void ShowMenu() {
     std::cout << "|0: Exit                                     |" << std::endl;
     std::cout << "|============================================|" << std::endl;
 }
-
+    
 int main() {
     int choice;
     do {
