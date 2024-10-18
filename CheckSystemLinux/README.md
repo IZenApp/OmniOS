@@ -9,11 +9,11 @@
 
 ## Установка
 
-1. Сохраните скрипт в файл, например `check_system.sh`.
+1. Сохраните скрипт в файл, например `CheckSystemLinux.sh`.
 2. Сделайте файл исполняемым:
 
     ```sh
-    chmod +x check_system.sh
+    chmod +x CheckSystemLinux.sh
     ```
 
 ## Использование
@@ -21,4 +21,4 @@
 Запустите скрипт командой:
 
 ```sh
-./check_system.sh
+./CheckSystemLinux.sh
