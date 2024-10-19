@@ -14,9 +14,9 @@ std::string Autocomplete(const std::string& input);
 void RunCommand(const std::string& command, std::string& currentDir) {
     std::string modifiedCommand = command;
 
-    // Replace "ls" with "dir"
+    // Replace "ls" with "Get-ChildItem"
     if (command.substr(0, 2) == "ls") {
-        modifiedCommand.replace(0, 2, "dir");
+        modifiedCommand.replace(0, 2, "Get-ChildItem");
     }
 
     // Handle "cd" command
@@ -31,8 +31,9 @@ void RunCommand(const std::string& command, std::string& currentDir) {
         }
     }
 
-    // Execute the modified command
-    system(modifiedCommand.c_str());
+    // Execute the modified command in PowerShell
+    std::string fullCommand = "powershell.exe -Command \"" + modifiedCommand + "\"";
+    system(fullCommand.c_str());
 }
 
 bool IsRunningAsAdmin() {
@@ -65,7 +66,7 @@ bool IsRunningAsAdmin() {
 
 void RequestElevation() {
     // Request elevation
-    ShellExecute(NULL, "runas", "cmd.exe", NULL, NULL, SW_SHOWNORMAL);
+    ShellExecute(NULL, "runas", "powershell.exe", NULL, NULL, SW_SHOWNORMAL);
 }
 
 std::string Autocomplete(const std::string& input) {
